@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+<script src="/source/js/discord.js"></script>
+<script>
+$(function(){
+	        $("#navBar").load("/source/html/navBar.html");
+});
+window.addEventListener("load", init);
+
+function init(){
+	var img = document.getElementById('image');
+	img.src = 'memes/Aliens.jpg';
+	img.addEventListener("load",function(){
+	$('#topText').val('');
+	$('#bottomText').val('');
+	var canvas = document.getElementById('canvas'),
+	ctx = canvas.getContext('2d'),
+	center = $('img').width()/2,
+	fromTop = $('img').height()*0.1,
+	fromBot = $('img').height()*0.9;
+	canvas.width = $('img').width();
+	canvas.crossOrigin = "Anonymous";
+	canvas.height = $('img').height();    
+	ctx.drawImage($('img').get(0), 0, 0);
+	ctx.font = "36pt Impact";
+	ctx.fillStyle = "white";
+	ctx.strokeStyle = "black";
+	ctx.lineWidth = 1;
+	ctx.textAlign = "center";
+	$(document).on('input',function(){
+		var topStrArr = $('#topText').val().split('\n'),
+		botStrArr = $('#bottomText').val().split('\n'),
+		fontSize = $('#fontSize').val();
+		ctx.font = fontSize + 'pt Impact';
+		ctx.clearRect(0,0,canvas.width,canvas.height);
+		ctx.drawImage($('img').get(0), 0, 0);
+		for (var i = 0; i < topStrArr.length; i++){
+			ctx.fillText(topStrArr[i].toUpperCase(), center, fromTop + (i * (fontSize*1.2)));
+			ctx.strokeText(topStrArr[i].toUpperCase(), center, fromTop + (i * (fontSize*1.2)));
+		}
+		for (var j = 0; j < botStrArr.length; j++){
+			ctx.fillText(botStrArr[j].toUpperCase(), center, fromBot + (j * (fontSize*1.2)));
+			ctx.strokeText(botStrArr[j].toUpperCase(), center, fromBot + (j * (fontSize*1.2)));
+		}
+		if (ctx.measureText(topStrArr[topStrArr.length-1]).width > (canvas.width * 0.8)){
+			document.getElementById('topText').value += '\n';
+		}
+		if (ctx.measureText(botStrArr[botStrArr.length-1]).width > (canvas.width * 0.8)){
+			document.getElementById('bottomText').value += '\n';
+		}
+	});
+});
+$('#canvas').attr("download", "meme.png");
+fillSelector();
+$('#postImage').click(function(){
+	    var b64 = canvas.toDataURL();
+	    memeToDiscord(b64);
+});
+$('#printImage').click(function(){
+	var b64 = canvas.toDataURL();
+	memeToDiscord(b64);
+});
+$('#downloadImage').click(function(){
+	$(this).attr("href", canvas.toDataURL()).attr("download", prompt("Filename"));
+});
+
+$('#imageUpload').change(function(){
+	var input = document.getElementById('imageUpload');
+	if (input.files && input.files[0]) {
+		var FR= new FileReader();
+		FR.addEventListener("load", function(e) {
+			document.getElementById("image").src       = e.target.result;
+		}); 
+		FR.readAsDataURL( input.files[0] );
+	}
+});
+
+$('#memeSelector').change(function(){
+	img.src = this.value;
+});
+}
+
+function fillSelector(){
+dir = 'memes/'
+var fileextension = "."; 
+var memeSelect = document.getElementById("memeSelector"); 
+$.ajax({ 
+url: dir,
+success: function(data) { 
+	var fileArr = $(data).find("a:contains(" + fileextension + ")");
+	for (var i = 0; i < fileArr.length; i++){
+		var opt = document.createElement("option");
+		filename = fileArr[i].href.replace(window.location.host, "").replace("http:///", "").split('/').filter(function(el){ return !!el; }).pop();
+		opt.text = filename.substr(0,filename.lastIndexOf('.')).replace(/%20/g,' ');
+		opt.value=dir+filename;
+		memeSelect.add(opt);
+	}
+}});
+}
+</script>
+</head>
+<body>
+	<div id="navBar"></div>
+	<img id="image" style="display:none">
+	<canvas id="canvas"></canvas>
+	<br><br>
+	<div id="topDiv" style="float: left; margin-right: 10px;">
+		<textarea type="text" id="topText" class="inpText" placeholder="Top Text"></textarea>
+	</div>
+	<div id="botDiv" style="float: left; margin-right: 10px;">
+		<textarea type="text" id="bottomText" class="inpText" placeholder="Bottom Text"></textarea>
+	</div>
+	<div id="btns" style="float: left; margin-right: 10px;">
+		<button id="postImage">Pipe to discord</button>
+		<button id="printImage"> Send to my friend's printer</button>
+		<button><a id="downloadImage" href="#">Download</a></button>
+	</div>
+	<br><br><br>
+	<input type="file" id="imageUpload"/>
+	<select id="memeSelector"></select>
+	<br><br>
+	<label for="fontSize">Font size:</label>
+	<br>
+	<input class="inpText" type="number" value="36" id="fontSize"/>
+
+</body>
+</html>
