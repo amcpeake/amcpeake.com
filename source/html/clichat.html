@@ -344,7 +344,7 @@ function updateOutput() {
 }
 
 async function sendMessage(msg) {
-	let payload = {};
+	let payload = {client: "Web UI"};
 	
 	if (Settings.encrypt && Settings.key) {
 		msg = encrypt(msg, Settings.key);
@@ -399,7 +399,7 @@ async function fetchMessages(filter = {}, wipe = false, scroll = false, prepend 
 		p.appendChild(time);
 
 
-		username.title = msg.ip;
+		username.title = `IP: ${msg.ip} ${msg.client ? "\nClient: " + msg.client : ""}`;
 		username.innerText = msg.ip;
 		if (msg.settings) { // Username/color ("settings") are stored as a b64 encoded JSON string
 			msg.settings = JSON.parse(b64decode(msg.settings));

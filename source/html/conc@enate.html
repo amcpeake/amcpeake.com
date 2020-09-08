@@ -12,52 +12,42 @@ var rAdj=["aback","abaft","abandoned","abashed","aberrant","abhorrent","abiding"
 function getRand(min, max){
 	return Math.floor(Math.random() * (max - min) ) + min;
 }
-function getRandAdj() {
-	var num = getRand(0, rAdj.length);
-	return rAdj[num];
-}
-function getRandAdv() {
-	var num = getRand(0, rAdv.length);
-	return rAdv[num];
+function getRandElement(arr) {
+	return arr[getRand(0, arr.length)];
 }
 String.prototype.CamelCase = function () {
 	return this.substr( 0, 1 ).toUpperCase() + this.substr( 1 );
 };
 function buildAt(numAts, numAdjs, numAdvs, which) {
-	var allAts = '',
-	currAt = '';
-	for (var i = 0; i < numAts; i++){
+	let allAts = '';
+	let currAt = '';
+	for (let i = 0; i < numAts; i++){
 		currAt = '';
-		for (var j = 0; j < numAdvs; j++){
-			currAt += getRandAdv().CamelCase();
+		for (let j = 0; j < numAdvs; j++){
+			currAt += getRandElement(rAdv).CamelCase();
 		}
-		for (var k = 0; k < numAdjs; k++){
-			currAt += getRandAdj().CamelCase();
+		for (let k = 0; k < numAdjs; k++){
+			currAt += getRandElement(rAdj).CamelCase();
 		}
 		if (which) { //@The__Gamer
-			var currAt = "@The" + currAt + "Gamer<br>";
+			currAt = `@The${currAt}Gamer<br>`;
 		} else {
-			var currAt = "@" + currAt + "Gaming<br>";
+			currAt = `@${currAt}Gaming<br>`;
 		}
 		allAts += currAt;
 	}
 	return allAts;
 }
-(function() {
-	var link = document.querySelector("link[rel*='icon']") || document.createElement('link');
-	link.type = 'image/x-icon';
-	link.rel = 'shortcut icon';
-	link.href = 'favicon.ico';
-	document.getElementsByTagName('head')[0].appendChild(link);
-})();
+
 window.addEventListener("load",function(){
-	var output = document.getElementById("output"),
+	let output = document.getElementById("output"),
 	atsInput = document.getElementById("numAts"),
 	advsInput = document.getElementById("numAdvs"),
 	adjsInput = document.getElementById("numAdjs"),
 	pipeBtn = document.getElementById("discordPipe"),
 	printBtn = document.getElementById("printAts");
 	document.getElementById("genBtn").addEventListener("click", function(){
+		let which = false;
 		output.innerHTML = '';
 		if (!atsInput.value)
 			atsInput.value = 1;
@@ -90,20 +80,18 @@ window.addEventListener("load",function(){
 			advsInput.value = 0;
 		}
 		if (document.getElementById("gamerBtn").checked){
-			var which = true; // True means @The__Gamer
+			which = true; // True means @The__Gamer
 		} else if (document.getElementById("gamingBtn").checked){
-			var which = false;
+			which = false;
 		}
 		output.innerHTML = buildAt(atsInput.value, adjsInput.value, advsInput.value, which);
 	});
 
 	pipeBtn.addEventListener("click",function(){
-		var str = output.innerHTML;
-		reloaded(str.replace(/<br>/g, '\n'));
+		reloaded(output.innerHTML.replace(/<br>/g, '\n'));
 	});
 	printBtn.addEventListener("click",function(){
-		var str = output.innerHTML;
-		reloaded(str.replace(/<br>/g, '\n'));
+		reloaded(innerHTML.replace(/<br>/g, '\n'));
 	});
 });
 
