@@ -1,0 +1,522 @@
+<html>
+<head>
+<link rel="stylesheet" href="/source/css/main.css">
+<style>
+#roomDisplay * {
+	display: inline-block;
+}
+
+#room:hover {
+	color: var(--highlight);
+	cursor: pointer;
+}
+
+#msgDisplay {
+	background-color: var(--body-bg);
+	border: solid 0.15em var(--navbar-bg);
+	width: 100%;
+	height: 60%;
+}
+
+#msgDiv {
+	overflow-y: auto;
+	height: 90%;
+	border-bottom: solid 0.15em var(--navbar-bg);
+	box-sizing: border-box;
+}
+
+#msgTable {
+	border-collapse: collapse;
+	width: 100%;
+	table-layout: fixed;
+}
+
+#msgTable tr {
+	border-bottom: solid 0.15em var(--navbar-bg);
+	width: 100%;
+}
+
+#msgTable td {
+	display: inline-block;
+	word-break: break-word;
+	padding: 0.1% 1%;
+}
+
+#msgArea {
+	overflow-y: auto;
+}
+
+
+#msg:focus {
+	outline: none;
+}
+
+#msg {
+	width: 100%;
+	height: 10%;
+	padding: 0 1%;
+	border: none;
+}
+
+#msgArea tr p {
+	display: inline-block;
+	margin: 0;
+	width: 100%;
+}
+
+#msgArea span {
+	font-size: 1vw;
+}
+
+#msgArea span:nth-child(1), #msgArea span:nth-child(2) {
+	white-space: nowrap;
+}
+
+#msgArea span:nth-child(4) {
+	overflow-wrap: break-word;
+	margin-left: 0.5em;
+	color: red;
+}
+
+input {
+	transition-duration: 0.5s;
+}
+input.accepted {
+	transition-duration: 0.2s;
+	background-color: var(--accept);
+}
+input.denied {
+	transition-duration: 0.2s;
+	background-color: var(--deny);
+}
+</style>
+</head>
+<body>
+<div id="main">
+	<div id="roomDisplay">
+		<h1>Current room:&nbsp;</h1><h1 id="room"></h1>
+		<input id="roomInput" style="display: none"></input>
+		<button style="float: right" id="refresh">Refresh</button>
+	</div>
+	<div id="msgDisplay">
+		<div id="msgDiv">
+			<table id="msgTable">
+				<tbody id="msgArea"></tbody>
+			</table>
+		</div>
+		<input placeholder="Send message" id="msg"></input>
+	</div>
+	<br>
+	<div id="settings">
+		<input id="key" type="password" placeholder="Encryption key"></input>
+		<input id="encrypt" type="checkbox"></input>
+		<label for="encrypt">Encrypt messages</label>
+		<br>
+		<input id="username" placeholder="Username"></input>
+		<input id="color" placeholder="Username color"></input>
+	</div>
+</div>
+
+<script src="/source/js/util.js"></script>
+<script src="/source/js/ansi_up.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/aes.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/3.1.2/rollups/sha256.js"></script>
+<script>
+let ansi_up = new AnsiUp;
+
+class Settings { // Singleton class for storing settings
+	static get room() { return new Settings().room ? new Settings().room : "main"; }
+	static set room(room) { new Settings().room = room; setCookie("room", Settings.room); }
+	
+	static get key() { return new Settings().key; }
+	static set key(key) { new Settings().key = key; setCookie("key", Settings.key); }
+
+	static get username() { return new Settings().username; }
+	static set username(username) { new Settings().username = username; setCookie("username", Settings.username); }	
+	
+	static get color() { return new Settings().color; }
+	static set color(color) {
+		let s = new Option().style;
+		s.color = color;
+		if (s.color == color.toLowerCase()) {
+			new Settings().color = color;
+			setCookie("color", Settings.color);
+		} else {
+			alert("Invalid color");
+		}
+	}
+
+	constructor() {
+		if (!Settings.instance) {
+			this.room = "main";
+
+			Settings.instance = this;
+		}
+
+		return Settings.instance;
+	}
+
+	static checkCookies() {
+		if (getCookie("room")) {
+			Settings.room = getCookie("room");	
+		}
+		if (getCookie("key")) {
+			Settings.key = getCookie("key");
+		}
+		if (getCookie("username")) {
+			Settings.username = getCookie("username");
+		}
+		if (getCookie("color")) {
+			Settings.color = getCookie("color");
+		}
+	}
+}
+
+
+window.onload = async () => {
+	document.querySelector("#room").addEventListener("click", function() {
+		let inp = document.querySelector("#roomInput");
+		inp.value = this.innerText;
+		this.style.display = "none";
+		inp.style.display = "inline-block";
+	});
+
+	document.querySelector("#roomInput").addEventListener("keyup", async function(e) { // Enter submits, esc ends
+		let h1 = document.querySelector("#room");
+		
+		if (!e) {
+			e = window.event;
+		}
+
+		if (e.keyCode == '13' || e.which == '13') { // Enter
+			Settings.room = this.value;
+
+			h1.innerText = this.value;
+			this.style.display = "none";
+			h1.style.display = "inline-block";
+
+			await fetchMessages({}, true, true);
+		} else if (e.keyCode == '27' || e.which == '27') { // Esc
+			this.value = h1.innerText;
+			this.style.display = "none";
+			h1.style.display = "inline-block";
+		}
+	});
+
+	document.querySelector("#refresh").addEventListener("click", async function(e) {
+		await fetchMessages({id: {min: getLastID() + 1}}, false, true);
+	});
+
+	document.querySelector("#msg").addEventListener("keyup", async function(e) {
+		if (this.value == '') {
+			return;
+		}
+
+		if (!e) {
+			e = window.event;
+		}
+
+		if (e.keyCode == '13' || e.which == '13') { // Send
+			let msg = this.value;
+			this.value = '';
+			await sendMessage(msg);
+		} else if (e.keyCode == '27' || e.which == '27') { // Esc
+			denyInput(this);
+			this.value = '';
+		}
+	});
+
+	document.querySelector("#key").addEventListener("keyup", async function(e) {
+		if (this.value == Settings.key) {
+			return;
+		}
+
+		if (!e) {
+			e = window.event;
+		}
+
+		if (e.keyCode == '13' || e.which == '13') {
+			acceptInput(this);
+			if (this.value == '') {
+				delete Settings.key;
+				removeCookie("key");
+			} else {
+				Settings.key = CryptoJS.SHA256(this.value).toString();
+				this.value = Settings.key;
+			}
+			await fetchMessages({}, true, true);
+		} else if (e.keyCode == '27' || e.which == '27') { // Esc
+			denyInput(this);
+			this.value = Settings.key;
+		}
+	});
+
+	document.querySelector("#encrypt").addEventListener("change", () => {
+		Settings.encrypt = this.checked;
+	});
+
+	document.querySelector("#username").addEventListener("keyup", function(e) {
+		if (this.value == Settings.username) {
+			return;
+		}
+
+		if (!e) {
+			e = window.event;
+		}
+
+		if (e.KeyCode == '13' || e.which == '13') {
+			acceptInput(this);
+			if (this.value == '') {
+				delete Settings.username;
+				removeCookie("username");
+			} else {
+				Settings.username = this.value;
+			}
+		} else if (e.keyCode == '27' || e.which == '27') { // Esc
+			denyInput(this);
+			this.value = Settings.username;
+		}
+	});
+
+	document.querySelector("#color").addEventListener("keyup", function(e) {
+		if (this.value == Settings.color) {
+			return;
+		}
+
+		if (!e) {
+			e = window.event;
+		}
+
+		if (e.KeyCode == '13' || e.which == '13') {
+			acceptInput(this);
+			if (this.value == '') {
+				delete Settings.color;
+				removeCookie("color");
+			} else {
+				Settings.color = this.value;
+			}
+		} else if (e.keyCode == '27' || e.which == '27') { // Esc
+			denyInput(this);
+			this.value = Settings.color;
+		}
+	});
+	
+	document.querySelector("#msgDiv").addEventListener("scroll", async function(e) {
+		if (this.scrollTop == 0) {
+			console.log("top");
+			let id = getFirstID();
+			await fetchMessages({id: {max: id - 1}}, false, false, true);
+			// Set scrollheight to location of row with firstID
+			if (document.querySelector(`tr[data-id='${id}']`)) {
+				document.querySelector(`tr[data-id='${id}']`).scrollIntoView();
+			}
+		}
+	});
+
+	Settings.checkCookies();
+	updateOutput();
+	await fetchMessages({}, true, true);
+
+	window.setInterval(async () => {
+		await fetchMessages({id: {min: getLastID() + 1}}, false, false);
+	}, 5000);
+}
+
+function updateOutput() {
+	document.querySelector("#room").innerText = Settings.room;
+	
+	if (Settings.key) {
+		document.querySelector("#key").value = Settings.key;
+		Settings.encrypt = true;
+	}
+
+	if (Settings.encrypt) {
+		document.querySelector("#encrypt").checked = true;
+	}
+
+	if (Settings.username) {
+		document.querySelector("#username").value = Settings.username;
+	}
+
+	if (Settings.color) {
+		document.querySelector("#color").value = Settings.color;
+	}
+}
+
+async function sendMessage(msg) {
+	let payload = {};
+	
+	if (Settings.encrypt && Settings.key) {
+		msg = encrypt(msg, Settings.key);
+		payload['encrypted'] = true;
+	} else {
+		payload['encrypted'] = false;
+	}
+	payload['msg'] = b64encode(msg);
+
+	let settings = {};
+	if (Settings.username) {
+		settings['username'] = Settings.username;
+	}
+	if (Settings.color) {
+		settings['color'] = Settings.color;
+	}
+	payload['settings'] = b64encode(JSON.stringify(settings));
+
+	await fetch(`https://cors-anywhere.herokuapp.com/http://waksmemes.x10host.com/mess/?${Settings.room}!post`, {
+		method: 'POST',
+		body: JSON.stringify(payload)
+	});
+	
+	await fetchMessages({id: {min: getLastID() + 1}}, false, true);
+}
+
+async function fetchMessages(filter = {}, wipe = false, scroll = false, prepend = false) {
+	let table = document.querySelector("#msgArea");
+	let messages = await fetch(`https://cors-anywhere.herokuapp.com/http://waksmemes.x10host.com/mess/?${Settings.room}!get`,{
+		method: 'POST',
+		body: JSON.stringify(filter)
+	}).then((response) => response.json());
+	
+	let frag = document.createDocumentFragment();
+	messages.reverse().filter((msg) => 'msg' in msg && msg.msg != '').forEach((msg) => {
+		let row = document.createElement("tr");
+		let cell = document.createElement("td");
+		let p = document.createElement("p");
+		let time = document.createElement("span");
+		let username = document.createElement("span");
+		let text = document.createElement("span");
+		
+		row.dataset.id = msg.id; // Store message ID in the row element
+
+
+		time.title = new Date(msg.time * 1000).toLocaleString();
+		time.innerText = new Date(msg.time * 1000)
+			.toLocaleTimeString([], {
+				hour: '2-digit',
+				minute: '2-digit'
+			});
+		p.appendChild(time);
+
+
+		username.title = msg.ip;
+		username.innerText = msg.ip;
+		if (msg.settings) { // Username/color ("settings") are stored as a b64 encoded JSON string
+			msg.settings = JSON.parse(b64decode(msg.settings));
+			if (msg.settings.name) {
+				username.innerHTML = ansi_up.ansi_to_html(msg.settings.name);
+			}
+			if (msg.settings.color) {
+				username.style.color = msg.settings.color;
+			}
+		}
+		p.appendChild(username);
+		p.innerHTML += "<span>:</span>";
+
+		
+
+		msg.msg = b64decode(msg.msg); // Message content ("msg") is taken from plaintext optionally encrypted using AES then b64encoded
+		if (msg.encrypted) {
+			if (Settings.key) {
+				try {
+					msg.msg = decrypt(msg.msg, Settings.key);
+				} catch(err) {
+					msg.msg = "[Failed to decrypt message. You're likely using the wrong key]";
+				}
+			} else {
+				msg.msg = "[This message is encrypted, set a key to attempt to decrypt it.]";
+			}
+			
+			text.class = "encrypted";
+			text.style.color = "black";
+		}
+		text.innerText = msg.msg;
+		p.appendChild(text);
+		
+		cell.appendChild(p);
+		row.appendChild(cell);
+		frag.appendChild(row);
+	});
+
+	if (wipe) { // Clear the output and add the new messages
+		table.innerHTML = '';
+	}
+
+	if (prepend && table.firstChild) {	
+		table.insertBefore(frag, table.firstChild);
+	} else {
+		table.appendChild(frag);
+	}
+
+	if (scroll) { // Scroll to the bottom once new messages are added
+		document.querySelector("#msgDiv").scrollTop = document.querySelector("#msgDiv").scrollHeight;
+	}
+}
+
+function getFirstID() {
+	let child = document.querySelector("#msgArea").firstElementChild;
+	if (child && child.dataset.id) {
+		return parseInt(child.dataset.id);
+	} else {
+		return 0;
+	}
+}
+function getLastID() {
+	let child = document.querySelector("#msgArea").lastElementChild;
+	if (child && child.dataset.id) {
+		return parseInt(child.dataset.id);
+	} else {
+		return 0;
+	}
+}
+
+function b64decode(str) {
+	return decodeURIComponent(escape(window.atob(str)));
+}
+function b64encode(str) {
+	return decodeURIComponent(unescape(window.btoa(str)));
+}
+
+function encrypt(text, key) {
+	let iv = CryptoJS.lib.WordArray.random(16);
+	key = CryptoJS.enc.Hex.parse(key);
+
+	let encrypted = CryptoJS.AES.encrypt(text, key, {
+		iv: iv
+	});
+	
+	return iv.concat(encrypted.ciphertext).toString(CryptoJS.enc.Base64);
+}
+function decrypt(ciphertext, key) {
+	ciphertext = CryptoJS.enc.Base64.parse(ciphertext);
+	key = CryptoJS.enc.Hex.parse(key);
+
+	// split IV and ciphertext
+	let iv = ciphertext.clone();
+	iv.sigBytes = 16;
+	iv.clamp();
+	ciphertext.words.splice(0, 4); // delete 4 words = 16 bytes
+	ciphertext.sigBytes -= 16;
+
+	// decryption
+	let decrypted = CryptoJS.AES.decrypt({ciphertext: ciphertext}, key, {iv: iv});
+	return decrypted.toString(CryptoJS.enc.Utf8);
+}
+
+function acceptInput(input) { // Trigger animation
+	input.className = "accepted";
+	
+	window.setTimeout(() => {
+		input.className = "";
+	}, 200);
+}
+function denyInput(input) {
+	input.className = "denied";
+	
+	window.setTimeout(() => {
+		input.className = "";
+	}, 200);
+}
+</script>
+</body>
+</html>

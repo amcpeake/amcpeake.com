@@ -1,0 +1,7 @@
+div(class="navbar")
+	each name, page in pages
+		if page == url
+			a(href=page, class="selected") #{name}
+			title #{name}
+		else
+			a(href=page) #{name}

@@ -1,0 +1,170 @@
+<html>
+<head>
+<link rel="stylesheet" href="/source/css/main.css">
+<style>
+#langDisplay * {
+	display: inline-block;
+}
+
+#language {
+	cursor: pointer;
+}
+
+#language:hover {
+	color: var(--highlight);
+}
+
+#languageSelect {
+	display: none;
+}
+#codeArea { 
+	width: 60%;
+	height: 40%;
+	font-size: 1vw;
+}
+#outputDisplay {
+	width: 60%;
+	display: none;
+	background-color: #2F3129;
+	border: solid 0.15em var(--navbar-bg);
+	padding: 1%;
+}
+#input {
+	width: 60%;
+	height: 10%;
+	font-size: 1vw;
+}
+</style>
+</head>
+<body>
+<div id="main">
+	<div id="langDisplay">
+		<h1>Language:&nbsp;</h1><h1 id="language"></h1><select id="languageSelect"></select>	
+	</div>
+	<div id="codeArea">
+	</div>
+	<br>
+	<div id="outputDisplay">
+		<h2>Output:</h2>
+		<h3 id="status"></h3>
+		<p id="output"></p>
+	</div>
+	<br><br>
+	<div id="settings">
+		<textarea id="input" placeholder="Input (Comma separated values, newline separated cases)"></textarea>
+		<br><br>
+		<button id="submit">Run code</button>
+	</div>
+</div>
+<script src="https://pagecdn.io/lib/ace/1.4.12/ace.js" type="text/javascript" charset="utf8"></script>
+<script>
+var editor = ace.edit("codeArea");
+editor.setTheme("ace/theme/monokai");
+editor.setValue('');
+
+var _MODE_MAP = {
+	assembly_x86: ["x86"], 
+	powershell: ["bash"], 
+	c_cpp: ["c", "cpp"], 
+	csharp: ["c#"], 
+	java: ["java"], 
+	javascript: ["javascript"],
+	php: ["php"],
+	python: ["python2", "python3"],  
+	ruby: ["ruby"]
+}
+
+
+window.onload = async () => {
+	let h1 = document.querySelector("#language");
+	let sel = document.querySelector("#languageSelect");
+	let outDiv = document.querySelector("#outputDisplay");
+
+	await populateSelector(sel);
+	h1.innerText = sel.options[sel.selectedIndex].innerText;
+	setMode(sel.options[sel.selectedIndex].value);
+
+	h1.addEventListener("click", function() {
+		this.style.display = "none";
+		sel.style.display = "inline-block";
+		sel.click();
+	});
+	sel.addEventListener("change", function() {
+		outDiv.style.display = "none";
+		h1.innerText = this.options[this.selectedIndex].innerText;
+		setMode(this.options[this.selectedIndex].value);
+		this.style.display = "none";
+		h1.style.display = "inline-block";
+	});
+	document.querySelector("#submit").addEventListener("click", async () => {
+		outDiv.style.display = "none";
+		if (editor.getValue() == '') {
+			alert("You must enter some code to run");
+			return;
+		}
+
+		fetch('/pyde', {
+			method: 'POST',
+			headers: {'Content-Type': 'application/json'},
+			body: JSON.stringify({
+				language: sel.options[sel.selectedIndex].value,
+				code: editor.getValue(),
+				input: document.querySelector("#input").value.split('\n').map(arr => arr.split(','))
+			})
+		}).then(resp => resp.json()).then(json => {
+			console.log(json);
+			let status = document.querySelector("#status");
+			let output = document.querySelector("#output");
+			output.innerText = '';
+
+			if ('status' in json && json.status == "pass") {
+				status.innerText = "Status: pass";
+				status.style.color = "var(--accept)";
+			} else {
+				status.innerText = "Status: fail";
+				status.style.color = "var(--deny)";
+			}
+			if ('output' in json) {
+				json.output.forEach((val, key) => {
+					output.innerText += `\nCase ${key + 1}:`;
+					output.innerText += `\n\t${val.join('\n')}`;
+				});
+			}
+			if ('error' in json) {
+				if (Array.isArray(json.error)) {
+					output.innerText += `\n\n${json.error.join('\n')}`;
+				} else {
+					output.innerText += `\n\n${json.error}`;
+				}
+			}
+			outDiv.style.display = "inherit";
+		});
+
+	});
+}
+
+async function populateSelector(sel) {
+	await fetch('/pyde', {
+		method: 'POST',
+		headers: {'Content-Type': 'application/json'},
+		body: JSON.stringify({language: ''})
+	}).then(resp => resp.json()).then(json => {
+		json['valid'].forEach((lang) => {
+			let opt = document.createElement("option");
+			opt.innerText = lang.charAt(0).toUpperCase() + lang.slice(1);
+			opt.value = lang;
+			sel.appendChild(opt);
+		});
+	});
+}
+
+function setMode(lang) {
+	Object.keys(_MODE_MAP).forEach((key) => {
+		if (_MODE_MAP[key].includes(lang)) {
+			editor.session.setMode(`ace/mode/${key}`);
+		}
+	});
+}
+</script>
+</body>
+</html>

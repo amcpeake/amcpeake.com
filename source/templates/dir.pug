@@ -1,0 +1,13 @@
+html
+	body
+		h1 Index of #{url}
+		
+		table
+			tbody
+				tr
+					th
+						p Name
+			each item in files
+				tr
+					td
+						a(href=url + item) #{item}	

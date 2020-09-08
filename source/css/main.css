@@ -1,0 +1,90 @@
+/* Variable Definitions */
+:root {
+	--navbar-bg: #333;
+	--body-bg: #7c828c;
+	--main-bg: #515761;
+
+	--highlight: #42b6f4;
+	--accept: #4CAF50;
+	--deny: #d9534f;
+}
+
+
+body {
+	background-color: var(--body-bg);
+	margin: 2%;
+}
+
+#main {
+	background-color: var(--main-bg);
+	opacity: 0.9;
+
+	border-style: solid;
+	border-color: var(--navbar-bg);
+
+	margin-top: 1%;
+	padding: 1% 5% 3%;
+
+	color: white;
+
+	height: auto;
+	overflow: auto;
+}
+
+#main h1 {
+	font-size: 2.5vw;
+}
+
+#main input {
+	font-size: 1.5vw;	
+}
+
+#main label {
+	font-size: 1.5vw;
+}
+
+#main button {
+	color: white;
+	background-color: var(--navbar-bg);
+	font-size: 1em;
+	cursor: pointer;
+	border: solid 0.15em black;
+	font-size: 1vw;
+	padding: 1%;
+
+	text-align: center;
+	text-decoration: none;
+	display: inline-block;
+}
+
+#main button:hover {
+	background-color: var(--highlight);
+	transition-duration: 0.4s;
+}
+
+
+/* NavBar Section */
+.navbar {		
+	background-color: var(--navbar-bg);
+	
+	overflow: hidden;		
+	font-family: Arial, Helvetica, sans-serif;
+}
+
+.navbar a {	
+	float: left;		
+	font-size: 3vh;				
+	color: white;
+	text-align: center;							
+	padding: 1.5% 2%;						
+	text-decoration: none;
+}
+
+.navbar a:hover, .dropdown:hover .dropbtn {
+	background-color: red;
+	transition-duration: 0.4s;
+}
+
+.navbar a.selected {
+	background-color: var(--highlight);
+}

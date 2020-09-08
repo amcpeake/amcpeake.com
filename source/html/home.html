@@ -1,0 +1,59 @@
+<html>
+<head>
+<link rel="icon" href="favicon.ico" type="image/x-icon" />
+<link rel="shortcut icon" href="favicon.ico" type="image/x-icon" />
+<link rel="stylesheet" href="/source/css/main.css">
+<style>
+	#comment {
+		width: 60%;
+		height: 15%;
+		font-size: 1.5em;
+	}
+</style>
+</head>
+<body>
+<div id="main">
+	<h2>Welcome to my personal website!<br>It mainly serves as a place to host small webapps/APIs for myself and my friends to use.<br><br>Feel free to have a look around.</h2>
+	<br><br>
+	<textarea id="comment" placeholder="Leave a comment!"></textarea>
+	<br>
+	<button id="submit">Submit comment</button>
+</div>
+
+<script src="/source/js/discord.js"></script>
+<script>
+window.onload = () => {
+	document.querySelector("#submit").addEventListener("click",()=>{
+		let commentBox = document.querySelector("#comment");
+		let comment = commentBox.value;
+
+		if (comment != '') {
+			let name = '';
+			while (!/[a-z]/i.test(name)) {
+				name = prompt("Please enter your name");
+				if (name == null) { // User hit "cancel"
+					return;
+				}
+			}
+			
+			sendHook({embeds: [
+				{
+					title: `${name} from ${ipInfo.country_name} says:`,
+					description: `***${comment}***`,
+					color: '1127128'
+				}
+				]
+			}, "comments", (response) => {
+				if (response.ok) {
+					alert(`Thanks for the comment, ${name}`);
+					comment.value = '';
+				}
+			});
+		} else {
+			alert("You can't submit an empty comment, cmon");
+		}	
+	});
+}
+</script>
+</body>
+</html>

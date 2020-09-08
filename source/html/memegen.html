@@ -1,0 +1,186 @@
+<html>
+<head>
+<link rel="stylesheet" href="/source/css/main.css">	
+
+<script src="/source/js/discord.js"></script>
+<script>
+window.onload = () => {
+	let img = document.querySelector('#image');
+	img.src = '/source/files/memes/Aliens.jpg';
+	
+	img.addEventListener("load", () => {
+		document.querySelector('#topText').value = '';
+		document.querySelector('#bottomText').value = '';
+
+		let canvas = document.querySelector('#canvas'),
+		ctx = canvas.getContext('2d'),
+		center = img.width / 2,
+		fromTop = img.height * 0.1,
+		fromBot = img.height * 0.9;
+		canvas.width = img.width;
+		canvas.crossOrigin = "Anonymous";
+		canvas.height = img.height;    
+		ctx.drawImage(img, 0, 0);
+		ctx.font = "36pt Impact";
+		ctx.fillStyle = "white";
+		ctx.strokeStyle = "black";
+		ctx.lineWidth = 1;
+		ctx.textAlign = "center";
+
+		document.addEventListener('input', () => {
+			let topStrArr = document.querySelector('#topText').value.split('\n'),
+			botStrArr = document.querySelector('#bottomText').value.split('\n'),
+			fontSize = document.querySelector('#fontSize').value;
+
+			ctx.font = fontSize + 'pt Impact';
+			ctx.clearRect(0,0,canvas.width,canvas.height);
+			ctx.drawImage(img, 0, 0);
+			for (let i = 0; i < topStrArr.length; i++){
+				ctx.fillText(topStrArr[i].toUpperCase(), center, fromTop + (i * (fontSize*1.2)));
+				ctx.strokeText(topStrArr[i].toUpperCase(), center, fromTop + (i * (fontSize*1.2)));
+			}
+
+			for (let j = 0; j < botStrArr.length; j++){
+				ctx.fillText(botStrArr[j].toUpperCase(), center, fromBot + (j * (fontSize*1.2)));
+				ctx.strokeText(botStrArr[j].toUpperCase(), center, fromBot + (j * (fontSize*1.2)));
+			}
+
+			if (ctx.measureText(topStrArr[topStrArr.length-1]).width > (canvas.width * 0.8)){
+				document.getElementById('topText').value += '\n';
+			}
+	
+			if (ctx.measureText(botStrArr[botStrArr.length-1]).width > (canvas.width * 0.8)){
+				document.getElementById('bottomText').value += '\n';
+			}
+		});
+	});
+
+	document.querySelector('#canvas').setAttribute("download", "meme.png");
+	fillSelector();
+	
+	document.querySelector('#postImage').addEventListener('click', () => {
+		let b64 = canvas.toDataURL();
+		memeToDiscord(b64);
+	});
+
+	document.querySelector('#printImage').addEventListener('click', () => {
+		let b64 = canvas.toDataURL();
+		memeToDiscord(b64);
+	});
+
+	document.querySelector('#downloadImage').addEventListener('click', function() {
+		this.setAttribute("href", canvas.toDataURL())
+			.setAttribute("download", prompt("Filename"));
+	});
+
+	document.querySelector('#imageUpload').addEventListener('change', () => {
+		let input = document.querySelector('#imageUpload');
+		if (input.files && input.files[0]) {
+			let FR= new FileReader();
+			FR.addEventListener('load', (e) => {
+				img.src = e.target.result;
+			}); 
+			FR.readAsDataURL(input.files[0]);
+		}
+	});
+
+	document.querySelector('#memeSelector').addEventListener('change', function() {
+		img.src = this.options[this.selectedIndex].value;
+	});
+}
+
+async function fillSelector(){
+	let dir = '/source/files/memes/'
+	let memeSelect = document.querySelector("#memeSelector"); 
+
+	let doc = await fetch(dir)
+		.then((response) => response.text())
+		.then((html) => {
+			let parser = new DOMParser;
+			return parser.parseFromString(html, 'text/html');
+		})
+		.catch((err) => { alert(err) });
+	console.log(doc);
+	let names = Array.from(doc.querySelectorAll("a")).map(a => { 
+		let opt = document.createElement("option");
+		opt.text = a.innerText.substr(0, a.innerText.lastIndexOf('.'));
+		opt.value = dir + a.innerText;
+		memeSelect.add(opt);
+	});
+}
+
+function memeToDiscord(base64){
+	var formData = new FormData(),
+	file = dataURLtoFile(base64, 'meme.png');
+	formData.append('key', 'memegen');
+	formData.append('content', file);
+
+	fetch("/webhooks", {
+		method: 'POST',
+		body: formData
+	}).then((resp) => { 
+		if (resp.ok) {
+			alert("Meme posted");
+		}
+	});
+}
+
+function dataURLtoFile(dataurl, filename) {
+	    var arr = dataurl.split(','), mime = arr[0].match(/:(.*?);/)[1],
+			bstr = atob(arr[1]), n = bstr.length, u8arr = new Uint8Array(n);
+	    while(n--){
+			    u8arr[n] = bstr.charCodeAt(n);
+			}
+	    return new File([u8arr], filename, {type:mime});
+}
+</script>
+<style>
+#image {
+	display: none;
+	width: 50%;
+}
+
+#canvas {
+	width: 40%;
+	max-height: 40%;
+}
+
+.left {
+	float: left;
+	margin-right: 1em;
+}
+
+textarea, input, label, select {
+	font-size: 1vw;
+}
+</style>
+</head>
+<body>
+<div id="main">
+	<img id="image">
+	<canvas id="canvas"></canvas>
+	<br><br>
+
+	<textarea type="text" id="topText" class="inpText, left" placeholder="Top Text"></textarea>
+	<textarea type="text" id="bottomText" class="inpText, left" placeholder="Bottom Text"></textarea>
+	<label for="fontSize">Font size:</label>
+	<input class="inpText" type="number" value="36" id="fontSize"/>
+	
+	<br><br><br>
+	
+	<div>
+		<select id="memeSelector" class="left"></select>
+		<label for="imageUpload" class="left">Custom Template:</label>
+		<input type="file" id="imageUpload" class="left"/>
+	</div>
+
+	<br><br>
+	<br>
+	<div id="btns" class="left" style="width: 100%">
+		<button id="postImage">Pipe to discord</button>
+		<button id="printImage"> Send to my friend's printer</button>
+		<button><a id="downloadImage" href="#">Download</a></button>
+	</div>
+</div>
+</body>
+</html>
