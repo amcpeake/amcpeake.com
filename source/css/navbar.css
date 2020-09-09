@@ -1,5 +1,27 @@
+.navbar {		
+	background-color: var(--navbar-bg);
+	
+	overflow: hidden;		
+	font-family: Arial, Helvetica, sans-serif;
+}
 
+.navbar a {	
+	float: left;		
+	font-size: 3vh;				
+	color: white;
+	text-align: center;							
+	padding: 1.5% 2%;						
+	text-decoration: none;
+}
 
+.navbar a:hover, .dropdown:hover .dropbtn {
+	background-color: red;
+	transition-duration: 0.4s;
+}
+
+.navbar a.selected {
+	background-color: var(--highlight);
+}
 
 .dropdown {	
 	float: left;

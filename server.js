@@ -113,8 +113,15 @@ app.get('/*', (req, res) => { // Catch-all (Given https://example.com/<str>, ret
 			
 			let pages = JSON.parse(data);
 			if (req.url in pages) { // Load page as dom and add navbar render
-				let navbar = pug.renderFile(getAbs('source/templates/navbar.pug'), 
-					{pages: pages, url: req.url});
+				let navbar;
+				
+				if (isMobile(req)) {
+					navbar = pug.renderFile(getAbs('source/templates/mobile-navbar.pug'),
+						{pages: pages, url: req.url});
+				} else {
+					navbar = pug.renderFile(getAbs('source/templates/navbar.pug'), 
+						{pages: pages, url: req.url});
+				}
 				JSDOM.fromFile(fp)
 				.then((dom) => {				
 					dom.window.document.body.innerHTML = navbar 
@@ -148,7 +155,11 @@ httpsServer.listen(443, () => {
 });
 
 
-
+function isMobile(req) { // Attempt to detect if a user is mobile based on user-agent
+	let keywords = ["mobile", "android"];
+	console.log(req.get('User-Agent'));	
+	return new RegExp(keywords.join('|')).test(req.get('User-Agent').toLowerCase());
+}
 function getAbs(rel) { return path.join(__dirname, rel); }
 
 function getConfig(key, callback) {

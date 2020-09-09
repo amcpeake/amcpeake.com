@@ -1,0 +1,21 @@
+link(rel="stylesheet", href="/source/css/mobile-navbar.css")
+meta(name="viewport", content="width=device-width, initial-scale=1")
+div(role="navigation" class="navbar")
+	div(id="menuToggle")
+		input(type="checkbox")
+		span
+		span
+		span
+
+		ul(id="menu") 
+			each name, page in pages
+				if page == url
+					a(href=page, class="selected")
+						li #{name}
+					title #{name}
+				else
+					a(href=page) 
+						li #{name}
+	each name, page in pages
+		if page == url
+			h1 #{name}

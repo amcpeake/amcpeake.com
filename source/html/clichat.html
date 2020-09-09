@@ -243,6 +243,8 @@ window.onload = async () => {
 			} else {
 				Settings.key = CryptoJS.SHA256(this.value).toString();
 				this.value = Settings.key;
+				Settings.encrypt = true;
+				document.querySelector("#encrypt").checked = true;
 			}
 			await fetchMessages({}, true, true);
 		} else if (e.keyCode == '27' || e.which == '27') { // Esc
@@ -251,7 +253,7 @@ window.onload = async () => {
 		}
 	});
 
-	document.querySelector("#encrypt").addEventListener("change", () => {
+	document.querySelector("#encrypt").addEventListener("change", function() {
 		Settings.encrypt = this.checked;
 	});
 
@@ -319,7 +321,7 @@ window.onload = async () => {
 
 	window.setInterval(async () => {
 		await fetchMessages({id: {min: getLastID() + 1}}, false, false);
-	}, 5000);
+	}, 10000);
 }
 
 function updateOutput() {
@@ -356,14 +358,14 @@ async function sendMessage(msg) {
 
 	let settings = {};
 	if (Settings.username) {
-		settings['username'] = Settings.username;
+		settings['name'] = Settings.username;
 	}
 	if (Settings.color) {
 		settings['color'] = Settings.color;
 	}
 	payload['settings'] = b64encode(JSON.stringify(settings));
 
-	await fetch(`https://cors-anywhere.herokuapp.com/http://waksmemes.x10host.com/mess/?${Settings.room}!post`, {
+	await fetch(`https://cors.amcpeake.workers.dev/?http://waksmemes.x10host.com/mess/?${Settings.room}!post`, {
 		method: 'POST',
 		body: JSON.stringify(payload)
 	});
@@ -373,11 +375,21 @@ async function sendMessage(msg) {
 
 async function fetchMessages(filter = {}, wipe = false, scroll = false, prepend = false) {
 	let table = document.querySelector("#msgArea");
-	let messages = await fetch(`https://cors-anywhere.herokuapp.com/http://waksmemes.x10host.com/mess/?${Settings.room}!get`,{
+	let messages = await fetch(`https://cors.amcpeake.workers.dev/?http://waksmemes.x10host.com/mess/?${Settings.room}!get`,{
 		method: 'POST',
 		body: JSON.stringify(filter)
-	}).then((response) => response.json());
-	
+	}).then((response) => {
+		if (response.ok) {
+			return response.json();
+		} else {
+			throw Error(response.statusText);
+		}
+	}).catch(err => console.log(err));
+
+	if (!messages) {
+		return;
+	}
+
 	let frag = document.createDocumentFragment();
 	messages.reverse().filter((msg) => 'msg' in msg && msg.msg != '').forEach((msg) => {
 		let row = document.createElement("tr");

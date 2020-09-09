@@ -23,6 +23,7 @@
 <script src="/source/js/discord.js"></script>
 <script>
 window.onload = () => {
+	document.querySelector("#comment").value = window.screen.width;	
 	document.querySelector("#submit").addEventListener("click",()=>{
 		let commentBox = document.querySelector("#comment");
 		let comment = commentBox.value;

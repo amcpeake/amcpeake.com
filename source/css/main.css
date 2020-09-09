@@ -9,20 +9,14 @@
 	--deny: #d9534f;
 }
 
-
 body {
 	background-color: var(--body-bg);
-	margin: 2%;
 }
 
 #main {
 	background-color: var(--main-bg);
 	opacity: 0.9;
 
-	border-style: solid;
-	border-color: var(--navbar-bg);
-
-	margin-top: 1%;
 	padding: 1% 5% 3%;
 
 	color: white;
@@ -62,29 +56,27 @@ body {
 	transition-duration: 0.4s;
 }
 
-
-/* NavBar Section */
-.navbar {		
-	background-color: var(--navbar-bg);
-	
-	overflow: hidden;		
-	font-family: Arial, Helvetica, sans-serif;
+/* Screen Size */
+/* Mobile */
+@media screen and (max-width: 600px) {
+	html, body {
+		margin: 0;
+		padding: 0;
+	}
+	#main {
+		border: none;
+		margin-top: 0;
+		height: 100%;
+	}
 }
-
-.navbar a {	
-	float: left;		
-	font-size: 3vh;				
-	color: white;
-	text-align: center;							
-	padding: 1.5% 2%;						
-	text-decoration: none;
-}
-
-.navbar a:hover, .dropdown:hover .dropbtn {
-	background-color: red;
-	transition-duration: 0.4s;
-}
-
-.navbar a.selected {
-	background-color: var(--highlight);
+/* Desktop */
+@media screen and (min-width: 600px) {
+	body {
+		margin: 2%;
+	}
+	#main {
+		margin-top: 1%;
+		border-style: solid;
+		border-color: var(--navbar-bg);
+	}
 }
