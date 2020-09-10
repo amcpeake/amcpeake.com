@@ -74,12 +74,21 @@ app.get(/^\/.*\/$/, (req, res) => { // Any directory (ends in /)
 	let fp = getAbs(req.url);
 	
 	if (fp.substr(0, folder.length) == folder) { // Make sure the folder is a subdirectory of ./source/
-		fs.readdir(fp, (err, files) => {
+		fs.readdir(fp, {withFileTypes: true}, (err, files) => {
 			if (err) {
 				res.sendStatus(404).end();
 				return;
 			} else {
-				res.render('dir', {url: req.url, files: files});
+				res.render('dir', {
+					url: req.url, 
+					files: files.map(file => {
+						if (file.isDirectory()) {
+							return {name: file.name, type: "folder"};
+						} else {
+							return {name: file.name, type: "file"};
+						}
+					})
+				});
 			}
 		});
 	}
@@ -163,7 +172,6 @@ httpsServer.listen(443, () => {
 
 function isMobile(req) { // Attempt to detect if a user is mobile based on user-agent
 	let keywords = ["mobile", "android"];
-	console.log(req.get('User-Agent'));	
 	return new RegExp(keywords.join('|')).test(req.get('User-Agent').toLowerCase());
 }
 

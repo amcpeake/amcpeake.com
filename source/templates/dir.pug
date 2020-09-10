@@ -7,7 +7,12 @@ html
 				tr
 					th
 						p Name
+					th
+						p Type
 			each item in files
 				tr
 					td
-						a(href=url + item) #{item}	
+						a(href=url + item.name) #{item.name}
+						
+					td
+						p #{item.type}
