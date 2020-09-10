@@ -321,6 +321,8 @@ window.onload = async () => {
 
 	// requestAnimationFrame can be called when the tab is out of focus but will not execute until focus is regained
 	// This allows us to refresh every 10 seconds, but pause refreshing if the tab is out of focus
+	window.requestAnimationFrame = window.requestAnimationFrame || window.mozRequestAnimationFrame || window.webkitRequestAnimationFrame || window.msgRequestAnimationFrame;
+
 	let called = false; // Prevent requestAnimationFrame from being called multiple times before executing, basically a mutex
 	window.setInterval(async () => {
 		if (!called) {
