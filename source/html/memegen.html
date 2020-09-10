@@ -100,7 +100,7 @@ async function fillSelector(){
 			return parser.parseFromString(html, 'text/html');
 		})
 		.catch((err) => { alert(err) });
-	console.log(doc);
+	
 	let names = Array.from(doc.querySelectorAll("a")).map(a => { 
 		let opt = document.createElement("option");
 		opt.text = a.innerText.substr(0, a.innerText.lastIndexOf('.'));

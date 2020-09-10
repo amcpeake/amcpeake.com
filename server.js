@@ -1,7 +1,5 @@
 'use strict';
 
-
-
 var fs = require('fs');
 var path = require('path');
 var express = require('express');
@@ -18,13 +16,16 @@ var { JSDOM } = jsdom;
 var app = express();
 var upload = multer();
 
-app.use('/source', express.static(path.join(__dirname, 'source')));
+app.use('/source', express.static(getAbs('source'))); // Serve static files from the /source directory
 app.use(express.json());
 
 app.set('view engine', 'pug');
-app.set('views', '/app/source/templates');
+app.set('views', getAbs('source/templates')); // Set the pug template folder
 
-app.post('/pyde', (req, res) => {
+//=============================================================================
+// Express Route Handlers
+
+app.post('/pyde', (req, res) => { // Simply proxies requests from the website to PyDE
 	let reqJSON = req.body;
 	getConfig('pyde_url', (url) => {
 		fetch(url, {
@@ -69,10 +70,10 @@ app.post('/webhooks', upload.single('content'), (req, res) => {
 });
 
 app.get(/^\/.*\/$/, (req, res) => { // Any directory (ends in /)
-	let folder = path.join(__dirname, 'source');
-	let fp = path.resolve(path.join(__dirname, req.url));
+	let folder = getAbs('source');
+	let fp = getAbs(req.url);
 	
-	if (fp.substr(0, folder.length) == folder) {
+	if (fp.substr(0, folder.length) == folder) { // Make sure the folder is a subdirectory of ./source/
 		fs.readdir(fp, (err, files) => {
 			if (err) {
 				res.sendStatus(404).end();
@@ -84,14 +85,14 @@ app.get(/^\/.*\/$/, (req, res) => { // Any directory (ends in /)
 	}
 });
 
-app.get('/*', (req, res) => { // Catch-all (Given https://example.com/<str>, returns <str.html>)
-	if (req.url == '/favicon.ico') {
+app.get('/*', (req, res) => { // Catch-all (Given https://example.com/<str>, returns <str>.html)
+	if (req.url == '/favicon.ico') { // Special case for favicon
 		res.sendFile(getAbs('source/files/favicon.ico'));
 		return;
 	}
 
-	let folder = path.join(__dirname, 'source/html/');
-	let fp = path.resolve(path.join(folder, req.url + '.html'));
+	let folder = getAbs('source/html/');
+	let fp = path.resolve(path.join(folder, `${req.url}.html`)); // Look for file at source/html/<str>.html
 	if (req.url == '/') {
 		fp = path.resolve(path.join(folder, 'home.html'));
 	}
@@ -141,6 +142,9 @@ app.get('/*', (req, res) => { // Catch-all (Given https://example.com/<str>, ret
 	}
 });
 
+// ============================================================================
+// Server Definition
+
 var httpServer = http.createServer(app);
 var httpsServer = https.createServer({
 	key: fs.readFileSync(getAbs('certs/server.key', 'utf8')),
@@ -154,16 +158,21 @@ httpsServer.listen(443, () => {
 	console.log("Running HTTPS on port 443");
 });
 
+//=============================================================================
+// Function Declarations
 
 function isMobile(req) { // Attempt to detect if a user is mobile based on user-agent
 	let keywords = ["mobile", "android"];
 	console.log(req.get('User-Agent'));	
 	return new RegExp(keywords.join('|')).test(req.get('User-Agent').toLowerCase());
 }
-function getAbs(rel) { return path.join(__dirname, rel); }
 
-function getConfig(key, callback) {
-	fs.readFile(path.join(__dirname, 'config/ignore_config.json'), 'utf8',
+function getAbs(rel) { // Returns an absolute path from a relative one
+	return path.resolve(path.join(__dirname, rel)); 
+}
+
+function getConfig(key, callback = console.log()) { // Return the value of key in JSON file
+	fs.readFile(getAbs('config/ignore_config.json'), 'utf8',
 		(err, data) => {
 			if (err) {
 				res.sendStatus(500).end();

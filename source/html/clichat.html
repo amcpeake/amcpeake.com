@@ -443,6 +443,13 @@ async function fetchMessages(filter = {}, wipe = false, scroll = false, prepend 
 			text.style.color = "black";
 		}
 		text.innerText = msg.msg;
+		findURL(msg.msg).forEach(match => { // Make URLs clickable
+			let link = document.createElement('a');
+			link.href = match.input;
+			link.innerText = match.input;
+			text.innerHTML = text.innerText.replace(match.input, link.outerHTML);
+		});
+
 		p.appendChild(text);
 		
 		cell.appendChild(p);
@@ -528,6 +535,10 @@ function denyInput(input) {
 	window.setTimeout(() => {
 		input.className = "";
 	}, 200);
+}
+
+function findURL(string) { // Return array of URL matches
+	return [...string.matchAll(/\b((?:[a-z][\w-]+:(?:\/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}\/)\S+(?:[^\s`!\[\]{};:'".,?«»“”‘’]))/ig)];
 }
 </script>
 </body>
