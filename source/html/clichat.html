@@ -319,9 +319,18 @@ window.onload = async () => {
 	updateOutput();
 	await fetchMessages({}, true, true);
 
+	// requestAnimationFrame can be called when the tab is out of focus but will not execute until focus is regained
+	// This allows us to refresh every 10 seconds, but pause refreshing if the tab is out of focus
+	let called = false; // Prevent requestAnimationFrame from being called multiple times before executing, basically a mutex
 	window.setInterval(async () => {
-		await fetchMessages({id: {min: getLastID() + 1}}, false, false);
-	}, 10000);
+		if (!called) {
+			called = true;
+			window.requestAnimationFrame(async () => {
+				await fetchMessages({id: {min: getLastID() + 1}}, false, false);
+				called = false;
+			});
+		}
+	}, 5000);
 }
 
 function updateOutput() {
