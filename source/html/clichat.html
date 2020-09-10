@@ -68,14 +68,21 @@
 	font-size: 1vw;
 }
 
+#msgArea span:nth-child(1), span:nth-child(3) {
+	margin-right: 0.5vw;
+}
+
 #msgArea span:nth-child(1), #msgArea span:nth-child(2) {
 	white-space: nowrap;
 }
 
 #msgArea span:nth-child(4) {
 	overflow-wrap: break-word;
-	margin-left: 0.5em;
-	color: red;
+	background-color: red;
+}
+
+#msgArea span.encrypted {
+	background-color: inherit;
 }
 
 input {
@@ -439,6 +446,7 @@ async function fetchMessages(filter = {}, wipe = false, scroll = false, prepend 
 		
 
 		msg.msg = b64decode(msg.msg); // Message content ("msg") is taken from plaintext optionally encrypted using AES then b64encoded
+		text.title = msg.encrypted ? "This message is encrypted" : "This message is NOT encrypted";
 		if (msg.encrypted) {
 			if (Settings.key) {
 				try {
@@ -449,16 +457,15 @@ async function fetchMessages(filter = {}, wipe = false, scroll = false, prepend 
 			} else {
 				msg.msg = "[This message is encrypted, set a key to attempt to decrypt it.]";
 			}
-			
-			text.class = "encrypted";
-			text.style.color = "black";
+				
+			text.className = "encrypted";
 		}
 		text.innerText = msg.msg;
 		findURL(msg.msg).forEach(match => { // Make URLs clickable
 			let link = document.createElement('a');
-			link.href = match.input;
-			link.innerText = match.input;
-			text.innerHTML = text.innerText.replace(match.input, link.outerHTML);
+			link.href = match[0];
+			link.innerText = match[0];
+			text.innerHTML = text.innerText.replace(match[0], link.outerHTML);
 		});
 
 		p.appendChild(text);
